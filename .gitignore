@@ -1,17 +1,7 @@
-# package
-node_modules
-jspm_packages
-
-# serverless
-.serverless
-
-# user
-config.json
-project.txt
-static/index.html
-
-build/
-
 .env
-.env.*
-!.env.example
+*.egg-info
+__pycache__
+.vscode
+.DS_Store
+cdk.out
+cdk.context.json

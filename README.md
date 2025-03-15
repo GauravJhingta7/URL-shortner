@@ -1,63 +1,81 @@
-# Serverless URL Shortener
 
-A lightweight URL shortener built with the Serverless Framework using AWS Lambda and S3. Each URL redirection is stored as an S3 object with the `Website-Redirect-Location` metadata key set to the forwarding web address. AWS Lambda is used to create an API to save these objects. The website is served from the same S3 bucket.
+# AWS URL Shortener
 
-![Screenshot](readme-screenshot.png)
+This is a simple, serverless URL shortening/unshortening solution built using AWS Services. The UI for the solution is hosted on S3 and served via CloudFront. The shortening/unshortening is done via API Gateway backed by a custom Lambda function. DynamoDB is used for storing the URLs as well as to keep track of an atomic counter used for generating the short URLs.
 
-## Setup
 
-### Install dependencies
+## Architecture
 
-Head on over to the [Serverless Framework docs](https://medium.com/r/?url=https%3A%2F%2Fserverless.com%2Fframework%2Fdocs%2Fproviders%2Faws%2Fguide%2Fquick-start%2F) and run through their quick-start guide. It’s mentioned in there as part of your setup, but be sure to install the AWS CLI and configure your AWS credentials. Then run `npm install` to get the NPM dependencies for the project.
+<image src="images/architecture.jpeg">
 
-### Setup Route 53
 
-Create Route 53 hosted zones for both the API and website.
+## How to deploy?
 
-### Add environment variables
+#### Prerequisites
 
-Create a copy of _.env.example_ for each "stage" that you wish to deploy to (e.g _.env.staging_, _.env.production_) and then customise each configuration file as appropriate for your setup.
+* Python >= 3.7
+  * https://www.python.org/downloads/
+  * Installing on EC2 Linux - https://docs.aws.amazon.com/cli/latest/userguide/install-linux-python.html
 
-| Name                 | Description                                                  | Required |
-| -------------------- | ------------------------------------------------------------ | -------- |
-| BUCKET               | S3 bucket that will store URL redirects                      | Y        |
-| REGION               | AWS region to deploy to                                      | Y        |
-| API_URL              | API endpoint the website will interact with                  | Y        |
-| API_DOMAIN           | Custom API domain the API will be served from                | Y        |
-| API_HOSTED_ZONE      | AWS Route53 hosted zone ID with the custom API domain        | Y        |
-| API_CERTIFICATE_NAME | AWS Certificate Authority certificate name for API domain    | Y        |
-| API_BASE_ENDPOINT    | API Gateway base path (e.g. prefix) for lambda function      | Y        |
-| SHORT_URL            | Base URL of shortened links (without trailing slash)         | Y        |
-| SHORT_DOMAIN         | Custom short domain to serve the website                     | Y        |
-| SHORT_HOSTED_ZONE    | AWS Route53 hosted zone ID with the custom short domain      | Y        |
-| SHORT_DOMAIN_ACM_ARN | AWS Certificate Authority certificate name for short domain  | Y        |
-| TITLE                | Customize the title of the website and form                  | N        |
-| CREDIT               | Customize the credit name in the footer                      | N        |
-| CREDIT_URL           | Customize the credit link in the footer                      | N        |
-| AWS_PROFILE          | AWS profile setup in `~/.aws/credentials`                    | N        |
+* Node.js >= 10.3.0 (required for the AWS CDK Toolkit)
+  * https://nodejs.org/en/download
+  * Installing on EC2 Linux - https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html#setting-up-node-on-ec2-instance-procedure
 
-### Deploy API
+* AWS CLI with at least the "default" profile configured
+  * https://docs.aws.amazon.com/cli/latest/userguide/install-cliv1.html
+  * https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html#cli-quick-configuration
 
-Run `npm run deploy` to deploy the API and website to AWS. The resources defined in _serverless.yml_ will be automatically instantiated using CloudFormation. Prefix with the stage you want to deploy (e.g. `STAGE=production npm run deploy`).
+* AWS CDK
+  * https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html#getting_started_install
 
-Architecture based on [serverless-aws-static-websites](https://github.com/tobilg/serverless-aws-static-websites):
+* Git CLI
+  * https://git-scm.com/downloads
 
-![Architecture](./readme-architecture.png)
+#### Steps
 
-### Build template
+1. Clone the project
 
-Run `npm run build` to build the template with appropriate template variables.
+```
+$ git clone https://github.com/aravraje/aws-url-shortener.git
+```
 
-### Deploy website
+2. Navigate to the project folder and create a Python virtualenv (assuming that there is a python3 (or python for Windows) executable in your path with access to the venv package)
 
-Run `npm run deploy:client` to deploy the website using the AWS CLI.
+```
+$ python3 -m venv .env
+```
 
-You can add a `?vanity=` query string parameter to the homepage to specify a vanity (custom) shortcode instead of a randomly-generated one. If the name is already taken, a random one will be used instead.
+3. Activate the Python virtualenv
 
-## Libraries used
+```
+$ source .env/bin/activate
+```
 
-- [Serverless Framework](https://serverless.com) for project structure and deployment.
-- [PaperCSS Framework](https://github.com/papercss/papercss) for the frontend design.
-- [jQuery](https://jquery.com) to simplify working with the DOM and making AJAX queries.
-- [nanoid](https://github.com/ai/nanoid) to generate random paths with more randomness.
-- [nanoid-good](https://github.com/y-gagar1n/nanoid-good) to help avoid generating any obscene words.
+  - If you are on a Windows platform, you can activate the virtualenv like this:
+
+```
+% .env\Scripts\activate.bat
+```
+
+4. Once the virtualenv is activated, install the required dependencies
+
+```
+$ pip install -r requirements.txt
+```
+
+5. At this point, you can deploy the solution using "cdk deploy" CDK CLI command
+
+> NOTE: If this is your first time deploying a CDK app in the given AWS Account and Region, you must bootstrap your AWS environment for CDK by invoking "cdk bootstrap" CDK CLI command before running the "cdk deploy" command.
+
+```
+$ cdk deploy [--profile aws_cli_profile]
+```
+  - This is an environment-agnostic solution and when using "cdk deploy" to deploy environment-agnostic solutions, the AWS CDK CLI uses the specified AWS CLI profile (or the "default" profile, if none is specified) to determine the AWS Account and Region for deploying the solution.
+
+6. Once the solution gets successfully deployed, you can access the URL Shortener website using the CloudFront endpoint present under "URLShortenerWebsite" parameter in the CFN Outputs.
+
+
+## Future Enhancements
+
+- Support for user-friendly Custom alias (ex: https://xxxx.cloudfront.net/cpu-utilization).
+- Dashboard to track the API usage.
